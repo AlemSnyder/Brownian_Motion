@@ -3,3 +3,8 @@ build.ninja
 cmake_install.cmake
 CMakeCache.txt
 config.h
+# exicutable
+BrownianMotion
+
+# Ninja files
+.ninja*
