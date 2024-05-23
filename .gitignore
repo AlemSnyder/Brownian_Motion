@@ -8,3 +8,5 @@ BrownianMotion
 
 # Ninja files
 .ninja*
+# build files
+build*

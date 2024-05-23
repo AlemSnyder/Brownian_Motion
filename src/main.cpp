@@ -13,7 +13,7 @@ int main(int argc, char** arcv) {
 
         particles.step();
         float temperature = particles.temperature();
-        //std::cout << "Temperature: " << temperature << "\n";
+        std::cout << "Temperature: " << temperature << "\n";
     }
     
     std::cout << std::endl;

@@ -12,9 +12,8 @@ Particles::Particles(float box_size, size_t num_particles)
     auto normal = std::normal_distribution(); // mean 0 std 1 I assume
 
     current_positions.reserve(num_particles);
-    current_velocities.reserve(num_particles);
+    velocities.reserve(num_particles);
     next_positions.reserve(num_particles);
-    next_velocities.reserve(num_particles);
 
     for (size_t i = 0; i < num_particles; i++){
         float x = uniform(rand_engine);
@@ -25,7 +24,7 @@ Particles::Particles(float box_size, size_t num_particles)
         float xv = normal(rand_engine);
         float yv = normal(rand_engine);
 
-        current_velocities.push_back(vec2({xv, yv}));
+        velocities.push_back(vec2({xv, yv}));
     }
 }
 
@@ -34,8 +33,7 @@ void Particles::step(){
 
     #pragma omp parallel
     for (size_t i = 0; i < num_particles; i++){
-        next_positions[i] = current_positions[i] + current_velocities[i];
-        next_velocities[i] = current_velocities[i];
+        next_positions[i] = current_positions[i] + velocities[i];
     }
 
     for (size_t i = 0; i < num_particles - 1; i++){
@@ -46,31 +44,35 @@ void Particles::step(){
 
 
                 auto [v1f, v2f] = collision(i, j);
-                next_velocities[i] = v1f;
-                next_velocities[j] = v2f;
+                velocities[i] = v1f;
+                velocities[j] = v2f;
             }
         }
     }
 
+    #pragma omp parallel
     for (size_t i = 0; i < num_particles; i++){
-        current_velocities[i] = next_velocities[i];
 
         if (next_positions[i][0] < -box_size_){
-            auto v = current_velocities[i];
-            current_velocities[i] = vec2({std::abs(v[0]), v[1]});
+            auto v = velocities[i];
+            velocities[i] = vec2({std::abs(v[0]), v[1]});
         } else if (next_positions[i][0] > box_size_){
-            auto v = current_velocities[i];
-            current_velocities[i] = vec2({-std::abs(v[0]), v[1]});
+            auto v = velocities[i];
+            velocities[i] = vec2({-std::abs(v[0]), v[1]});
         }
 
         if (next_positions[i][1] < -box_size_){
-            auto v = current_velocities[i];
-            current_velocities[i] = vec2({v[0], std::abs(v[1])});
+            auto v = velocities[i];
+            velocities[i] = vec2({v[0], std::abs(v[1])});
         } else if (next_positions[i][1] > box_size_){
-            auto v = current_velocities[i];
-            current_velocities[i] = vec2({v[0], -std::abs(v[1])});
+            auto v = velocities[i];
+            velocities[i] = vec2({v[0], -std::abs(v[1])});
         }
 
+    }
+
+    for (size_t i = 0; i < num_particles; i++){
+        current_positions[i] = next_positions[i];
     }
 
 
@@ -84,15 +86,17 @@ float Particles::temperature() const {
     // the temperature is the average kinetic energy
     // E = 1/2 m v^2
     for (std::size_t i = 0; i < num_particles; i++){
-        total_energy += current_velocities[i] * current_velocities[i];
+        total_energy += velocities[i] * velocities[i];
     }
 
     return total_energy / num_particles;
 }
 
 std::pair<vec2, vec2> Particles::collision(std::size_t i, std::size_t j) const {
-    vec2 v1 = current_velocities[i];
-    vec2 v2 = current_velocities[j];
+
+
+    vec2 v1 = velocities[i];
+    vec2 v2 = velocities[j];
     float m1 = mass[i];
     float m2 = mass[j];
 
@@ -109,6 +113,17 @@ std::pair<vec2, vec2> Particles::collision(std::size_t i, std::size_t j) const {
 
     vec2 v1f = v1s2 + v1s1 * mass_ratio1 + v2s1 * mass_ratio3;
     vec2 v2f = v2s2 + v1s1 * mass_ratio2 - v2s1 * mass_ratio1;
+
+#if 0
+    vec2 ip = v1 * m1 + v2 * m2;
+    float ie = m1 * linalg::norm_squared(v1) + m2 * linalg::norm_squared(v2);
+    vec2 fp = v1f * m1 + v2f * m2;
+    float fe = m1 * linalg::norm_squared(v1f) + m2 * linalg::norm_squared(v2f);
+
+    if (linalg::norm_squared(ip - fp) > 1e-2){
+        std::cout << "Invalid collision\n";
+    }
+#endif
 
     return {v1f, v2f};
 }
