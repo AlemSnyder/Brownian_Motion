@@ -2,7 +2,9 @@
 
 #include <array>
 #include <cmath>
+#include <utility>
 
+namespace linalg {
 
 template <class T, int n>
 class vec
@@ -26,6 +28,7 @@ public:
 
     // dot product
     T operator*(const vec<T, n> other) const;
+    T operator[](std::size_t i) const;
 
 };
 
@@ -120,14 +123,36 @@ T vec<T, n>::operator*(const vec<T, n> other) const{
     
 }
 
+template<class T, int n>
+T vec<T, n>::operator[](std::size_t i) const {
+    // assert(i < n);
+    return data_[i];
+}
+
 template <class T, int n>
 T norm_squared(vec<T, n> arg){
     return arg * arg;
 }
 
 template <class T, int n>
-T norm(vec<T, n> arg){
+inline T norm(vec<T, n> arg){
     return std::sqrt(norm_squared(arg));
 }
 
+template<class T, int n>
+inline vec<T, n> normalize(const vec<T, n> arg) {
+    return arg / norm(arg);
+}
+
 using vec2 = vec<float, 2>;
+
+inline vec2 perpendicular(const vec2 arg){
+    return vec2({arg[1], -arg[0]});
+}
+
+template<class T, int n>
+inline std::pair<vec<T, n>, vec<T, n>> decomp(vec<T, n> arg, vec<T, n> p1, vec<T, n> p2){
+    return {p1 * (p1 * arg), p2 * (p2 * arg)};
+}
+
+}

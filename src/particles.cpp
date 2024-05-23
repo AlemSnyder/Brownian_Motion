@@ -1,5 +1,8 @@
 #include "particles.hpp"
 #include <random>
+#include <iostream>
+
+using linalg::vec2;
 
 Particles::Particles(float box_size, size_t num_particles)
     : box_size_(box_size), mass(num_particles, 1), radius(num_particles, 0.5){
@@ -29,21 +32,49 @@ Particles::Particles(float box_size, size_t num_particles)
 void Particles::step(){
     size_t num_particles = current_positions.size();
 
-    //#pragma parallel for
+    #pragma omp parallel
     for (size_t i = 0; i < num_particles; i++){
         next_positions[i] = current_positions[i] + current_velocities[i];
+        next_velocities[i] = current_velocities[i];
     }
 
     for (size_t i = 0; i < num_particles - 1; i++){
         for (size_t j = i+1; j < num_particles; j++){
             if (norm_squared( current_positions[i] - current_positions[j]) < radius[i] + radius[j]){
 
-                // I read this on the internet somewhere
-                next_velocities[i] = current_velocities[j];
-                next_velocities[j] = current_velocities[i];
+                std::cout << "Collision\n";
+
+
+                auto [v1f, v2f] = collision(i, j);
+                next_velocities[i] = v1f;
+                next_velocities[j] = v2f;
             }
         }
     }
+
+    for (size_t i = 0; i < num_particles; i++){
+        current_velocities[i] = next_velocities[i];
+
+        if (next_positions[i][0] < -box_size_){
+            auto v = current_velocities[i];
+            current_velocities[i] = vec2({std::abs(v[0]), v[1]});
+        } else if (next_positions[i][0] > box_size_){
+            auto v = current_velocities[i];
+            current_velocities[i] = vec2({-std::abs(v[0]), v[1]});
+        }
+
+        if (next_positions[i][1] < -box_size_){
+            auto v = current_velocities[i];
+            current_velocities[i] = vec2({v[0], std::abs(v[1])});
+        } else if (next_positions[i][1] > box_size_){
+            auto v = current_velocities[i];
+            current_velocities[i] = vec2({v[0], -std::abs(v[1])});
+        }
+
+    }
+
+
+
 }
 
 float Particles::temperature() const {
@@ -57,4 +88,27 @@ float Particles::temperature() const {
     }
 
     return total_energy / num_particles;
+}
+
+std::pair<vec2, vec2> Particles::collision(std::size_t i, std::size_t j) const {
+    vec2 v1 = current_velocities[i];
+    vec2 v2 = current_velocities[j];
+    float m1 = mass[i];
+    float m2 = mass[j];
+
+    vec2 dp = linalg::normalize(current_positions[i] - current_positions[j]);
+    vec2 dpp = linalg::perpendicular(dp);
+
+    auto [v1s1, v1s2] = linalg::decomp(v1, dp, dpp);
+    auto [v2s1, v2s2] = linalg::decomp(v2, dp, dpp);
+
+    float mass_ratio1 = (m1 - m2) / (m1 + m2);
+    float mass_ratio2 = (2 * m1) / (m1 + m2);
+    float mass_ratio3 = (2 * m2) / (m1 + m2);
+
+
+    vec2 v1f = v1s2 + v1s1 * mass_ratio1 + v2s1 * mass_ratio3;
+    vec2 v2f = v2s2 + v1s1 * mass_ratio2 - v2s1 * mass_ratio1;
+
+    return {v1f, v2f};
 }

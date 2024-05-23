@@ -19,6 +19,10 @@ add_executable(BrownianMotion ${SOURCES1})
 set_property(TARGET BrownianMotion PROPERTY CXX_STANDARD 20)
 set_property(TARGET BrownianMotion PROPERTY C_STANDARD 17)
 
+find_package(OpenMP REQUIRED)
+
+target_link_libraries(BrownianMotion PRIVATE OpenMP::OpenMP_CXX)
+
 # Add include dirs
 target_include_directories(BrownianMotion PRIVATE "src")
 target_include_directories(BrownianMotion PRIVATE "${PROJECT_BINARY_DIR}")

@@ -1,7 +1,10 @@
 #pragma once
 
 #include <vector>
+#include <utility>
 #include "linalg.hpp"
+
+using linalg::vec2;
 
 class Particles
 {
@@ -22,6 +25,8 @@ public:
     
     void step();
     float temperature() const;
+
+    std::pair<vec2, vec2> collision(std::size_t i, std::size_t j) const;
 };
 
 
