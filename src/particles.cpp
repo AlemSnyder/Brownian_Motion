@@ -1,7 +1,8 @@
 #include "particles.hpp"
 #include <random>
 
-Particles::Particles(float box_size, size_t num_particles) : box_size_(box_size){
+Particles::Particles(float box_size, size_t num_particles)
+    : box_size_(box_size), mass(num_particles, 1), radius(num_particles, 0.5){
     auto rand_engine = std::default_random_engine();
 
     auto uniform = std::uniform_real_distribution(-box_size, box_size);
@@ -27,10 +28,21 @@ Particles::Particles(float box_size, size_t num_particles) : box_size_(box_size)
 
 void Particles::step(){
     size_t num_particles = current_positions.size();
+
     //#pragma parallel for
-    for (size_t i = 0; i < num_particles; i ++){
+    for (size_t i = 0; i < num_particles; i++){
         next_positions[i] = current_positions[i] + current_velocities[i];
-        next_velocities[i] = current_positions[i];
+    }
+
+    for (size_t i = 0; i < num_particles - 1; i++){
+        for (size_t j = i+1; j < num_particles; j++){
+            if (norm_squared( current_positions[i] - current_positions[j]) < radius[i] + radius[j]){
+
+                // I read this on the internet somewhere
+                next_velocities[i] = current_velocities[j];
+                next_velocities[j] = current_velocities[i];
+            }
+        }
     }
 }
 

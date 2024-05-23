@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cmath>
 
 
 template <class T, int n>
@@ -117,6 +118,16 @@ T vec<T, n>::operator*(const vec<T, n> other) const{
     }
     return total;
     
+}
+
+template <class T, int n>
+T norm_squared(vec<T, n> arg){
+    return arg * arg;
+}
+
+template <class T, int n>
+T norm(vec<T, n> arg){
+    return std::sqrt(norm_squared(arg));
 }
 
 using vec2 = vec<float, 2>;
