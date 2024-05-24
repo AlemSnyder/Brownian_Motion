@@ -40,9 +40,6 @@ void Particles::step(){
         for (size_t j = i+1; j < num_particles; j++){
             if (norm_squared( current_positions[i] - current_positions[j]) < radius[i] + radius[j]){
 
-                std::cout << "Collision\n";
-
-
                 auto [v1f, v2f] = collision(i, j);
                 velocities[i] = v1f;
                 velocities[j] = v2f;
